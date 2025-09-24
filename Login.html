@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title></title>
+    <style>
+        h1{
+            text-align: center;
+            color: orange;
+        }
+        .Login{
+            width: 300px;
+            margin: 100px auto;
+            padding: 20px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+    </style>
+        
+</head>
+<body>
+    <div class="Login">
+        <h1>登录</h1>
+        <form>
+            <input type="text" id="username" placeholder="用户名"><br><br>
+            <input type="password" id="password" placeholder="密码"><br><br>
+            <input type="submit" value="登录">
+        </form>
+    </div>
+    <script>
+        document.querySelector('.Login').addEventListener('submit',function(e){
+            e.preventDefault();
+            let username = document.getElementById('username').value;
+            let password = document.getElementById('password').value;
+            if(username == '' || password == ''){
+                alert('请输入用户名和密码');
+                return;
+            }
+            if(username.length < 3 || username.length > 10){
+                alert('用户名长度应在3到10个字符之间');
+                return;
+            }
+            if(!/^[a-zA-Z0-9_]{3,10}$/.test(username)){
+                alert('用户名只能包含字母、数字和下划线');
+                return;
+            }
+            if(!/^[a-zA-Z0-9_]{3,10}$/.test(password)){
+                alert('密码只能包含字母、数字和下划线');
+                return;
+            }
+            if(username == 'admin' && password == '123456'){
+                alert('登录成功');
+                window.location.href = 'index_admin.html';
+            }else{
+                if(username == 'user' && password == '123456'){
+                    alert('登录成功');
+                    window.location.href = 'index_yes.html';
+                    return;
+                }
+                alert('登录失败');
+            }
+        })
+    </script>
+</body>
+</html>

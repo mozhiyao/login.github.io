@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>原生 JavaScript 编译器</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Microsoft YaHei', Arial, sans-serif;
+        }
+        body {
+            padding: 20px;
+            background-color: #3b383a;
+        }
+        .compiler {
+            max-width: 1200px;
+            margin: 0 auto;
+            background-color: #3b383a;
+        }
+        .title {
+            text-align: center;
+            margin-bottom: 20px;
+            color: #333;
+        }
+        .controls {
+            margin-bottom: 15px;
+            display: flex;
+            gap: 10px;
+        }
+        button {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        #runBtn {
+            background-color: #4CAF50;
+            color: white;
+        }
+        #clearBtn {
+            background-color: #f44336;
+            color: white;
+        }
+        .content {
+            display: flex;
+            gap: 20px;
+            height: 500px;
+        }
+        @media (max-width: 768px) {
+            .content {
+                flex-direction: column;
+                height: auto;
+            }
+        }
+        .code-area, .output-area {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background-color: #3b383a;
+            border-radius: 4px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .area-header {
+            padding: 10px;
+            background-color: #333;
+            color: white;
+            font-size: 16px;
+            border-top-left-radius: 4px;
+            border-top-right-radius: 4px;
+        }
+        textarea {
+            flex: 1;
+            width: 100%;
+            padding: 10px;
+            border: none;
+            resize: none;
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 14px;
+            outline: none;
+        }
+        #output {
+            flex: 1;
+            padding: 10px;
+            background-color: #1e1e1e;
+            color: #eee;
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 14px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+        }
+        .error {
+            color: #ff4444;
+        }
+        .log {
+            color: #00ffcc;
+        }
+    </style>
+</head>
+<body>
+    <div class="compiler">
+        <h1 class="title">原生 JavaScript 编译器</h1>
+        
+        <!-- 控制按钮 -->
+        <div class="controls">
+            <button id="runBtn">运行代码</button>
+            <button id="clearBtn">清空输出</button>
+        </div>
+        
+        <!-- 代码编辑区和输出区 -->
+        <div class="content">
+            <!-- 代码编辑区 -->
+            <div class="code-area">
+                <div class="area-header">代码编辑区（支持 JS 语法）</div>
+                <textarea id="code" placeholder="请输入 JavaScript 代码...">// 示例代码：点击"运行代码"查看效果
+console.log("Hello, JavaScript!");
+
+// 计算 1-10 的和
+let sum = 0;
+for (let i = 1; i <= 10; i++) {
+    sum += i;
+}
+console.log("1-10 的和：", sum);
+
+// 定义函数并调用
+function getMax(a, b) {
+    return a > b ? a : b;
+}
+console.log("5 和 9 的最大值：", getMax(5, 9));
+
+// 捕获错误示例（取消注释查看效果）
+// console.log(undefinedVar);
+</textarea>
+            </div>
+            
+            <!-- 输出区 -->
+            <div class="output-area">
+                <div class="area-header">运行结果</div>
+                <div id="output">点击"运行代码"按钮执行代码，结果将显示在这里...
+</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 获取DOM元素
+        const codeInput = document.getElementById('code');
+        const outputDiv = document.getElementById('output');
+        const runBtn = document.getElementById('runBtn');
+        const clearBtn = document.getElementById('clearBtn');
+
+        // 重写 console 方法，将输出定向到页面
+        function redirectConsole() {
+            // 保存原生 console 方法（避免完全覆盖）
+            const originalLog = console.log;
+            const originalError = console.error;
+            const originalWarn = console.warn;
+
+            // 输出格式化函数
+            function addOutput(content, type = 'log') {
+                const time = new Date().toLocaleTimeString(); // 时间戳
+                const line = document.createElement('div');
+                line.className = type; // 用于区分日志类型（颜色）
+                // 处理对象/数组的格式化显示
+                if (typeof content === 'object' && content !== null) {
+                    content = JSON.stringify(content, null, 2); // 美化JSON格式
+                }
+                line.textContent = `[${time}] ${content}`;
+                outputDiv.appendChild(line);
+                // 自动滚动到最新输出
+                outputDiv.scrollTop = outputDiv.scrollHeight;
+            }
+
+            // 重写 console.log
+            console.log = function(...args) {
+                args.forEach(arg => addOutput(arg, 'log'));
+                originalLog.apply(console, args); // 同时保留浏览器控制台输出
+            };
+
+            // 重写 console.error
+            console.error = function(...args) {
+                args.forEach(arg => addOutput(arg, 'error'));
+                originalError.apply(console, args);
+            };
+
+            // 重写 console.warn
+            console.warn = function(...args) {
+                args.forEach(arg => addOutput(arg, 'error'));
+                originalWarn.apply(console, args);
+            };
+
+            // 返回原生方法，便于后续恢复
+            return { originalLog, originalError, originalWarn };
+        }
+
+        // 恢复原生 console 方法
+        function restoreConsole(originalMethods) {
+            console.log = originalMethods.originalLog;
+            console.error = originalMethods.originalError;
+            console.warn = originalMethods.originalWarn;
+        }
+
+        // 运行代码的核心函数
+        function runCode() {
+            // 清空之前的输出
+            outputDiv.innerHTML = '';
+            // 获取用户输入的代码
+            const code = codeInput.value.trim();
+            if (!code) {
+                outputDiv.textContent = '[提示] 请先输入 JavaScript 代码再运行！';
+                return;
+            }
+
+            // 重定向 console 输出
+            const originalMethods = redirectConsole();
+
+            try {
+                // 执行代码（使用 eval 执行，原生 JS 支持）
+                const result = eval(code);
+                // 如果代码有返回值（且不为 undefined），额外输出返回值
+                if (result !== undefined) {
+                    console.log('代码返回值：', result);
+                }
+            } catch (err) {
+                // 捕获代码执行错误（如语法错误、变量未定义等）
+                console.error('执行错误：', err.message);
+            } finally {
+                // 无论是否出错，都恢复原生 console
+                restoreConsole(originalMethods);
+            }
+        }
+
+        // 清空输出
+        function clearOutput() {
+            outputDiv.innerHTML = '点击"运行代码"按钮执行代码，结果将显示在这里...';
+        }
+
+        // 绑定按钮事件
+        runBtn.addEventListener('click', runCode);
+        clearBtn.addEventListener('click', clearOutput);
+
+        // 快捷键支持：Ctrl+Enter 运行代码（兼容 Windows/Mac）
+        codeInput.addEventListener('keydown', function(e) {
+            if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+                e.preventDefault(); // 阻止换行
+                runCode();
+            }
+        });
+    </script>
+</body>
+</html>
